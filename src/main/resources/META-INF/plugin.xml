@@ -1,7 +1,7 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.dhks77.intellijdoorayplugin</id>
-    <name>intellij-dooray-plugin</name>
+    <name>dooray</name>
     <vendor>dhks77</vendor>
 
     <depends>com.intellij.modules.platform</depends>
@@ -9,10 +9,13 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.dhks77.intellijdoorayplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
+        <applicationService serviceImplementation="com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsState" />
+        <applicationConfigurable instance="com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsConfigurable" id="plugin.config.DooraySettingsConfigurable" displayName="Dooray Settings" />
     </extensions>
 
-    <applicationListeners>
-        <listener class="com.github.dhks77.intellijdoorayplugin.listeners.MyApplicationActivationListener" topic="com.intellij.openapi.application.ApplicationActivationListener"/>
-    </applicationListeners>
+    <actions>
+        <action id="commit" class="com.github.dhks77.intellijdoorayplugin.plugin.actions.CommitAction" text="Commit" icon="/icons/D.svg">
+            <add-to-group group-id="Vcs.MessageActionGroup" anchor="first" />
+        </action>
+    </actions>
 </idea-plugin>

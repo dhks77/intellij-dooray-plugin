@@ -1,4 +1,4 @@
-package com.github.dhks77.intellijdoorayplugin.listeners
+package com.github.dhks77.intellijdoorayplugin.intellijdoorayplugin.listeners
 
 import com.intellij.openapi.application.ApplicationActivationListener
 import com.intellij.openapi.diagnostic.thisLogger
