@@ -15,19 +15,22 @@ class DooraySettingsConfigurable : Configurable {
     override fun isModified(): Boolean {
         val settings = DooraySettingsState.getInstance()
         return !dooraySettingsComponent.tokenField.text.equals(settings.token) ||
-                !dooraySettingsComponent.projectIdField.text.equals(settings.projectId)
+                !dooraySettingsComponent.projectIdField.text.equals(settings.projectId) ||
+                !dooraySettingsComponent.domainField.text.equals(settings.domain)
     }
 
     override fun apply() {
         val settings = DooraySettingsState.getInstance()
         settings.token = dooraySettingsComponent.getToken()
         settings.projectId = dooraySettingsComponent.getProjectId()
+        settings.domain = dooraySettingsComponent.getDomain()
     }
 
     override fun reset() {
         val settings = DooraySettingsState.getInstance()
         dooraySettingsComponent.setToken(settings.token)
         dooraySettingsComponent.setProjectId(settings.projectId)
+        dooraySettingsComponent.setDomain(settings.domain)
     }
 
     @Nls

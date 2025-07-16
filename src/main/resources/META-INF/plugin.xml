@@ -11,6 +11,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsState" />
         <applicationConfigurable instance="com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsConfigurable" id="plugin.config.DooraySettingsConfigurable" displayName="Dooray Settings" />
+        <statusBarWidgetFactory implementation="com.github.dhks77.intellijdoorayplugin.plugin.provider.BranchStatusBarWidgetFactory" id="DoorayBranchInfo" />
     </extensions>
 
     <actions>

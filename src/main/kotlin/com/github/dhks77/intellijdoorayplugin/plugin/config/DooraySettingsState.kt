@@ -15,6 +15,7 @@ class DooraySettingsState : PersistentStateComponent<DooraySettingsState> {
 
     var token = ""
     var projectId = ""
+    var domain = ""
 
     companion object {
 
@@ -31,6 +32,7 @@ class DooraySettingsState : PersistentStateComponent<DooraySettingsState> {
     override fun loadState(state: DooraySettingsState) {
         this.token = state.token
         this.projectId = state.projectId
+        this.domain = state.domain
     }
 
 }

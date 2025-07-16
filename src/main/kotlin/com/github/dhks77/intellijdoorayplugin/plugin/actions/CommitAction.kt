@@ -5,6 +5,7 @@ import com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsState
 import com.github.dhks77.intellijdoorayplugin.service.GithubService
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -43,7 +44,7 @@ class CommitAction : AnAction() {
                     val post = getPost(settings.token, settings.projectId, postNumber)
                     
                     // UI 스레드에서 결과 처리
-                    com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+                    ApplicationManager.getApplication().invokeLater {
                         if (post == null) {
                             setCommitMessage(actionEvent, "업무가 없어요..ㅠㅠ!")
                         } else {
@@ -52,7 +53,7 @@ class CommitAction : AnAction() {
                     }
                 } catch (e: Exception) {
                     // 에러 발생 시 UI 스레드에서 처리
-                    com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+                    ApplicationManager.getApplication().invokeLater {
                         setCommitMessage(actionEvent, "API 호출 중 오류가 발생했습니다: ${e.message}")
                     }
                 }
