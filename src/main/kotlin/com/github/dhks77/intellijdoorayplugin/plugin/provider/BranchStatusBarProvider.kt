@@ -1,7 +1,7 @@
 package com.github.dhks77.intellijdoorayplugin.plugin.provider
 
 import com.github.dhks77.intellijdoorayplugin.dooray.facade.getPost
-import com.github.dhks77.intellijdoorayplugin.dooray.vo.Post
+import com.github.dhks77.intellijdoorayplugin.plugin.cache.DoorayPostCache
 import com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsState
 import com.github.dhks77.intellijdoorayplugin.service.GithubService
 import com.intellij.openapi.components.service
@@ -9,19 +9,15 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.StatusBarWidgetFactory
-import com.intellij.openapi.wm.impl.status.TextPanel
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.Disposable
 import com.intellij.util.Consumer
 import com.intellij.ide.BrowserUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.awt.event.MouseEvent
-import java.util.concurrent.ConcurrentHashMap
 
 class BranchStatusBarWidgetFactory : StatusBarWidgetFactory {
     override fun getId(): String = "DoorayBranchInfo"
@@ -33,7 +29,7 @@ class BranchStatusBarWidgetFactory : StatusBarWidgetFactory {
 }
 
 class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, StatusBarWidget.TextPresentation {
-    private val cache = ConcurrentHashMap<String, Post?>()
+    private val cache = DoorayPostCache.getInstance(project)
     private val scope = CoroutineScope(Dispatchers.IO)
     private var currentText = "Dooray: -"
             private var statusBar: StatusBar? = null
@@ -64,7 +60,7 @@ class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, Sta
         }
         
         // 캐시에서 Post 객체 가져오기
-        val post = cache[branchName]
+        val post = cache.getPost(branchName)
         if (post != null) {
             val settings = DooraySettingsState.getInstance()
             if (settings.domain.isNotEmpty()) {
@@ -118,8 +114,8 @@ class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, Sta
         }
         
         // 캐시에서 확인
-        if (cache.containsKey(branchName)) {
-            val post = cache[branchName]
+        if (cache.hasPost(branchName)) {
+            val post = cache.getPost(branchName)
             val text = if (post != null) {
                 "${post.number}: ${post.subject}"
             } else {
@@ -146,7 +142,7 @@ class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, Sta
                     if (settings.token.isEmpty() || settings.projectId.isEmpty()) {
                         ApplicationManager.getApplication().invokeLater {
                             updateText("Dooray: 설정 필요")
-                            cache[branchName] = null
+                            cache.putPost(branchName, null)
                         }
                         return
                     }
@@ -160,13 +156,13 @@ class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, Sta
                     
                     ApplicationManager.getApplication().invokeLater {
                         updateText(tooltip)
-                        cache[branchName] = post
+                        cache.putPost(branchName, post)
                     }
                     
                 } catch (e: Exception) {
                     ApplicationManager.getApplication().invokeLater {
                         updateText("Dooray: 오류")
-                        cache[branchName] = null
+                        cache.putPost(branchName, null)
                     }
                 }
             }

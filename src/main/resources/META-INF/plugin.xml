@@ -5,6 +5,7 @@
     <vendor>dhks77</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>Git4Idea</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
@@ -17,6 +18,20 @@
     <actions>
         <action id="commit" class="com.github.dhks77.intellijdoorayplugin.plugin.actions.CommitAction" text="Commit" icon="/icons/D.svg">
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="first" />
+        </action>
+        <action id="OpenDoorayTask" class="com.github.dhks77.intellijdoorayplugin.plugin.actions.OpenDoorayTaskAction" text="Dooray 업무 페이지 열기 (현재 브랜치)" icon="/icons/D.svg">
+            <add-to-group group-id="ToolsMenu" anchor="last" />
+            <add-to-group group-id="EditorPopupMenu" anchor="last" />
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt D" />
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="ctrl meta shift D" />
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="ctrl meta shift D" />
+        </action>
+        <action id="OpenDoorayTaskByBranch" class="com.github.dhks77.intellijdoorayplugin.plugin.actions.OpenDoorayTaskByBranchAction" text="Dooray 업무 페이지 열기 (브랜치 선택)" icon="/icons/D.svg">
+            <add-to-group group-id="ToolsMenu" anchor="last" />
+            <add-to-group group-id="EditorPopupMenu" anchor="last" />
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift D" />
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="ctrl meta shift S" />
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="ctrl meta shift S" />
         </action>
     </actions>
 </idea-plugin>
