@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
     storages = [Storage("dooray-post-cache.xml")]
 )
 class DoorayPostCache : PersistentStateComponent<DoorayPostCache.State> {
-    private val cache = ConcurrentHashMap<String, Post?>()
+    private val cache = ConcurrentHashMap<String, Post>()
     
     companion object {
         private const val CACHE_EXPIRY_DAYS = 30L
@@ -26,7 +26,7 @@ class DoorayPostCache : PersistentStateComponent<DoorayPostCache.State> {
     }
     
     data class State(
-        var posts: MutableMap<String, PostData?> = mutableMapOf()
+        var posts: MutableMap<String, PostData> = mutableMapOf()
     )
     
     data class PostData(
@@ -43,7 +43,12 @@ class DoorayPostCache : PersistentStateComponent<DoorayPostCache.State> {
     }
     
     fun putPost(branchName: String, post: Post?) {
-        cache[branchName] = post
+        if (post != null) {
+            cache[branchName] = post
+        } else {
+            // null인 경우 캐시에서 제거
+            cache.remove(branchName)
+        }
     }
     
     fun hasPost(branchName: String): Boolean {
@@ -59,16 +64,14 @@ class DoorayPostCache : PersistentStateComponent<DoorayPostCache.State> {
         val currentTime = System.currentTimeMillis()
         
         cache.forEach { (branchName, post) ->
-            state.posts[branchName] = post?.let { 
-                PostData(
-                    id = it.id,
-                    subject = it.subject,
-                    taskNumber = it.taskNumber,
-                    closed = it.closed,
-                    number = it.number,
-                    timestamp = currentTime
-                )
-            }
+            state.posts[branchName] = PostData(
+                id = post.id,
+                subject = post.subject,
+                taskNumber = post.taskNumber,
+                closed = post.closed,
+                number = post.number,
+                timestamp = currentTime
+            )
         }
         return state
     }
@@ -79,7 +82,7 @@ class DoorayPostCache : PersistentStateComponent<DoorayPostCache.State> {
         
         state.posts.forEach { (branchName, postData) ->
             // 캐시 만료 체크
-            if (postData != null && (currentTime - postData.timestamp) < CACHE_EXPIRY_MILLIS) {
+            if ((currentTime - postData.timestamp) < CACHE_EXPIRY_MILLIS) {
                 cache[branchName] = Post(
                     id = postData.id,
                     subject = postData.subject,
