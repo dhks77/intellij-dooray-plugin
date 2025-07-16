@@ -1,7 +1,26 @@
 # IntelliJ Dooray Plugin
 
+![Build](https://github.com/dhks77/intellij-dooray-plugin/workflows/Build/badge.svg)
+[![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
+
 IntelliJ IDEA에서 Dooray 업무 관리를 더욱 효율적으로! 
 Git 브랜치명에서 업무 번호를 자동으로 인식하고, Dooray 업무 정보를 쉽게 확인할 수 있는 플러그인입니다.
+
+<!-- Plugin description -->
+IntelliJ IDEA에서 Dooray 업무 관리를 더욱 효율적으로 할 수 있는 플러그인입니다. 
+
+주요 기능:
+- Git 브랜치명에서 업무 번호를 자동으로 인식하여 Dooray 업무 정보 표시
+- 업무 번호 - 업무 제목으로 Commit message 자동 작성
+- 상태바에서 현재 브랜치의 업무 정보 확인 및 클릭으로 브라우저에서 업무 페이지 열기
+- 브랜치를 prefix별로 자동 분류하여 스마트하게 관리
+- 모든 업무 불러오기, 다중 브랜치 삭제 등 배치 작업 지원
+- 30일 만료 영구 캐시 시스템으로 빠른 성능 제공
+- Windows/Linux, Mac 키보드 단축키 지원
+
+브랜치명 마지막에 업무 번호가 있으면 자동으로 인식하여 해당 Dooray 업무 정보를 표시합니다.
+<!-- Plugin description end -->
 
 ## ✨ 주요 기능
 
