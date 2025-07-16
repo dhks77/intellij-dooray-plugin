@@ -47,7 +47,7 @@ class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, Sta
     
     override fun getAlignment(): Float = 0.0f
     
-    override fun getTooltipText(): String? = "현재 브랜치의 Dooray 업무 정보 (5초마다 자동 갱신, 클릭하여 업무 페이지 열기, Ctrl+클릭으로 새로고침)"
+    override fun getTooltipText(): String? = "클릭하여 업무 페이지 열기"
     
     override fun getClickConsumer(): Consumer<MouseEvent>? = Consumer { mouseEvent ->
         // 우클릭(또는 Ctrl+클릭)이면 새로고침
