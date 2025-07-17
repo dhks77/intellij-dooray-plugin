@@ -1,36 +1,76 @@
 package com.github.dhks77.intellijdoorayplugin.plugin.config
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.options.ConfigurationException
 import org.jetbrains.annotations.Nls
 import javax.swing.JComponent
 
 class DooraySettingsConfigurable : Configurable {
 
-    private val dooraySettingsComponent = DooraySettingsComponent()
+    private val logger = Logger.getInstance(DooraySettingsConfigurable::class.java)
+    private var dooraySettingsComponent: DooraySettingsComponent? = null
 
-    override fun createComponent(): JComponent {
-        return dooraySettingsComponent.panel
+    override fun createComponent(): JComponent? {
+        return try {
+            logger.info("Creating Dooray Settings component")
+            dooraySettingsComponent = DooraySettingsComponent()
+            dooraySettingsComponent?.panel
+        } catch (e: Exception) {
+            logger.error("Failed to create Dooray Settings component", e)
+            null
+        }
     }
 
     override fun isModified(): Boolean {
-        val settings = DooraySettingsState.getInstance()
-        return !dooraySettingsComponent.tokenField.text.equals(settings.token) ||
-                !dooraySettingsComponent.projectIdField.text.equals(settings.projectId) ||
-                !dooraySettingsComponent.domainField.text.equals(settings.domain)
+        return try {
+            val component = dooraySettingsComponent ?: return false
+            val settings = DooraySettingsState.getInstance()
+            
+            val tokenChanged = component.tokenField.text != settings.token
+            val projectIdChanged = component.projectIdField.text != settings.projectId
+            val domainChanged = component.domainField.text != settings.domain
+            
+            tokenChanged || projectIdChanged || domainChanged
+        } catch (e: Exception) {
+            logger.error("Failed to check if settings are modified", e)
+            false
+        }
     }
 
     override fun apply() {
-        val settings = DooraySettingsState.getInstance()
-        settings.token = dooraySettingsComponent.getToken()
-        settings.projectId = dooraySettingsComponent.getProjectId()
-        settings.domain = dooraySettingsComponent.getDomain()
+        try {
+            val component = dooraySettingsComponent ?: throw ConfigurationException("Settings component not initialized")
+            val settings = DooraySettingsState.getInstance()
+            
+            settings.token = component.getToken()
+            settings.projectId = component.getProjectId()
+            settings.domain = component.getDomain()
+            
+            logger.info("Dooray settings applied successfully")
+        } catch (e: Exception) {
+            logger.error("Failed to apply Dooray settings", e)
+            throw ConfigurationException("Failed to save Dooray settings: ${e.message}")
+        }
     }
 
     override fun reset() {
-        val settings = DooraySettingsState.getInstance()
-        dooraySettingsComponent.setToken(settings.token)
-        dooraySettingsComponent.setProjectId(settings.projectId)
-        dooraySettingsComponent.setDomain(settings.domain)
+        try {
+            val component = dooraySettingsComponent ?: return
+            val settings = DooraySettingsState.getInstance()
+            
+            component.setToken(settings.token)
+            component.setProjectId(settings.projectId)
+            component.setDomain(settings.domain)
+            
+            logger.info("Dooray settings reset successfully")
+        } catch (e: Exception) {
+            logger.error("Failed to reset Dooray settings", e)
+        }
+    }
+
+    override fun disposeUIResources() {
+        dooraySettingsComponent = null
     }
 
     @Nls
