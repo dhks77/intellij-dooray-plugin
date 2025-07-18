@@ -170,6 +170,8 @@ class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, Sta
     }
     
     private fun extractTaskNumber(branchName: String): Long? {
-        return branchName.split("/").last().toLongOrNull()
+        val regex = Regex("\\d+")
+        val match = regex.findAll(branchName).lastOrNull()
+        return match?.value?.toLongOrNull()
     }
 } 

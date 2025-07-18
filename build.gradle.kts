@@ -33,7 +33,8 @@ dependencies {
     intellijPlatform {
         val type = properties("platformType")
         val version = properties("platformVersion")
-        create(type, version)
+        // Force x86_64 architecture to avoid aarch64 issues with 2025.1
+        create(type, version, useInstaller = false)
         
         // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
         val plugins = properties("platformPlugins").map { it.split(',').map(String::trim).filter(String::isNotEmpty) }
