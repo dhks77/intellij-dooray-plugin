@@ -97,7 +97,7 @@ class OpenDoorayTaskByBranchAction : AnAction() {
             BranchGroupPopupStep(project, repository, branchGroups)
         )
 
-        popup.showInBestPositionFor(e.dataContext)
+        popup.showCenteredInCurrentWindow(project)
     }
 
     private fun groupBranchesByPrefix(branches: List<GitBranch>): List<BranchGroup> {
