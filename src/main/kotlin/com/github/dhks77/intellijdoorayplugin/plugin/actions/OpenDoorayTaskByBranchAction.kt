@@ -27,6 +27,9 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.vcs.VcsDataKeys
 
 class OpenDoorayTaskByBranchAction : AnAction() {
 
@@ -262,7 +265,6 @@ class BranchListPopupStep(
 
 enum class BranchAction {
     OPEN_DOORAY,
-    CREATE_PULL_REQUEST,
     DELETE_BRANCH
 }
 
@@ -275,7 +277,6 @@ class BranchActionPopupStep(
     override fun getTextFor(action: BranchAction): String {
         return when (action) {
             BranchAction.OPEN_DOORAY -> "Dooray 업무 페이지 열기"
-            BranchAction.CREATE_PULL_REQUEST -> "Pull Request 생성"
             BranchAction.DELETE_BRANCH -> "Git 브랜치 삭제"
         }
     }
@@ -284,7 +285,6 @@ class BranchActionPopupStep(
         if (finalChoice) {
             when (selectedAction) {
                 BranchAction.OPEN_DOORAY -> openDoorayTask()
-                BranchAction.CREATE_PULL_REQUEST -> createPullRequest()
                 BranchAction.DELETE_BRANCH -> {
                     ApplicationManager.getApplication().invokeLater {
                         deleteBranch()
@@ -333,57 +333,6 @@ class BranchActionPopupStep(
         })
     }
     
-    private fun createPullRequest() {
-        val branchName = branch.name
-        val taskNumber = OpenDoorayTaskByBranchAction.extractTaskNumber(branchName) ?: return
-
-        ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Pull Request 정보 생성 중...", true) {
-            override fun run(indicator: ProgressIndicator) {
-                try {
-                    val settings = DooraySettingsState.getInstance()
-                    val post = DoorayPostCache.getInstance(project).getPost(branchName)
-                        ?: getPost(settings.token, settings.projectId, taskNumber)
-
-                    ApplicationManager.getApplication().invokeLater {
-                        if (post != null) {
-                            val title = settings.prTitleTemplate
-                                .replace("{taskNumber}", post.taskNumber)
-                                .replace("{subject}", post.subject)
-
-                            val body = "${settings.domain}/project/tasks/${post.id}"
-
-                            val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-                            clipboard.setContents(StringSelection(title), null)
-
-                            Messages.showInfoMessage(
-                                project,
-                                "PR 제목이 클립보드에 복사되었습니다.\n\n제목: $title\n\n본문:\n$body",
-                                "Pull Request 생성"
-                            )
-
-                            // TODO: IntelliJ의 PR 생성창 열기 (GitHub 플러그인 연동 필요)
-                            
-                        } else {
-                            Messages.showWarningDialog(
-                                project,
-                                "Dooray 업무 정보를 찾을 수 없어 PR 정보를 생성할 수 없습니다.",
-                                "오류"
-                            )
-                        }
-                    }
-                } catch (e: Exception) {
-                    ApplicationManager.getApplication().invokeLater {
-                        Messages.showErrorDialog(
-                            project,
-                            "Pull Request 정보 생성 중 오류가 발생했습니다: ${e.message}",
-                            "오류"
-                        )
-                    }
-                }
-            }
-        })
-    }
-
     private fun deleteBranch() {
         if (branch.isRemote) {
             Messages.showWarningDialog(
