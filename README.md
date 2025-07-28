@@ -14,6 +14,7 @@ IntelliJ IDEA에서 Dooray 업무 관리를 더욱 효율적으로 할 수 있�
 - Git 브랜치명에서 업무 번호를 자동으로 인식하여 Dooray 업무 정보 표시
 - 업무 번호 - 업무 제목으로 Commit message 자동 작성
 - 상태바에서 현재 브랜치의 업무 정보 확인 및 클릭으로 브라우저에서 업무 페이지 열기
+- GitHub Pull Request Title/Description 자동 채우기 (단축키 지원)
 - 브랜치를 prefix별로 자동 분류하여 스마트하게 관리
 - 모든 업무 불러오기, 다중 브랜치 삭제 등 배치 작업 지원
 - 30일 만료 영구 캐시 시스템으로 빠른 성능 제공
@@ -48,9 +49,18 @@ IntelliJ IDEA에서 Dooray 업무 관리를 더욱 효율적으로 할 수 있�
 - **Windows/Linux**: 
   - `Ctrl+Alt+D`: 현재 브랜치 업무 페이지 열기
   - `Ctrl+Alt+Shift+D`: 브랜치 선택 메뉴 열기
+  - `Ctrl+Shift+Alt+A`: GitHub Pull Request 정보 자동 채우기
 - **Mac**: 
   - `Ctrl+Cmd+Shift+D`: 현재 브랜치 업무 페이지 열기
   - `Ctrl+Cmd+Shift+S`: 브랜치 선택 메뉴 열기
+  - `Ctrl+Shift+Cmd+A`: GitHub Pull Request 정보 자동 채우기
+
+### 🔗 GitHub Pull Request 자동 채우기
+- **현재 브랜치의 Dooray 업무 정보**를 사용하여 GitHub Pull Request의 **Title**과 **Description**을 자동으로 채워줍니다
+- **PR Title**: 설정 가능한 템플릿 형식 (예: `[#1234] 업무 제목`)
+- **PR Description**: Dooray 업무 페이지 링크 자동 삽입
+- **조용한 동작**: 별도의 알림창 없이 자동으로 필드를 채워줍니다
+- **사용법**: GitHub Pull Request 생성 화면에서 `Ctrl+Shift+Alt+A` (Windows/Linux) 또는 `Ctrl+Shift+Cmd+A` (Mac) 단축키 사용
 
 ## 🚀 사용 방법
 
@@ -75,7 +85,16 @@ IntelliJ IDEA에서 Dooray 업무 관리를 더욱 효율적으로 할 수 있�
 - develop/new-feature
 ```
 
-### 3. 주요 사용 시나리오
+### 3. PR Title Template 설정 (선택사항)
+GitHub Pull Request 자동 채우기 기능을 위한 제목 템플릿을 설정할 수 있습니다:
+1. `Settings/Preferences` → `Dooray Settings`에서 **PR Title Template** 설정
+2. 사용 가능한 변수:
+   - `{taskNumber}`: 업무 번호 (예: 1234)
+   - `#{taskNumber}`: # 포함 업무 번호 (예: #1234)  
+   - `{subject}`: 업무 제목
+3. 예시 템플릿: `[#{taskNumber}] {subject}`
+
+### 4. 주요 사용 시나리오
 
 #### 📖 현재 브랜치 업무 확인
 - 상태바에서 업무 정보 확인
@@ -98,6 +117,13 @@ IntelliJ IDEA에서 Dooray 업무 관리를 더욱 효율적으로 할 수 있�
 2. **여러 브랜치 삭제** 선택
 3. 체크박스로 삭제할 브랜치들 선택
 4. 확인 후 일괄 삭제 실행
+
+#### 🚀 GitHub Pull Request 자동 생성
+1. GitHub Pull Request 생성 화면 열기
+2. `Ctrl+Shift+Alt+A` (Windows/Linux) 또는 `Ctrl+Shift+Cmd+A` (Mac) 단축키 사용
+3. **Title**: 설정된 템플릿에 따라 자동 생성 (예: `[#1234] 로그인 페이지 개선`)
+4. **Description**: Dooray 업무 페이지 링크 자동 삽입 (예: `https://company.dooray.com/project/tasks/1234`)
+5. 필요에 따라 추가 내용 편집 후 Pull Request 생성
 
 ## 🛠️ 설치 방법
 

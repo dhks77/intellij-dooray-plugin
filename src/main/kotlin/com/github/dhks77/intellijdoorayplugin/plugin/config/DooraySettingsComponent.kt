@@ -14,6 +14,7 @@ class DooraySettingsComponent {
     val tokenField = JBTextField()
     val projectIdField = JBTextField()
     val domainField = JBTextField()
+    val prTitleTemplateField = JBTextField()
     
     val panel: JPanel by lazy {
         try {
@@ -22,6 +23,7 @@ class DooraySettingsComponent {
                 .addLabeledComponent(JBLabel("Dooray Token: "), tokenField, 1, false)
                 .addLabeledComponent(JBLabel("Dooray Project ID: "), projectIdField, 1, false)
                 .addLabeledComponent(JBLabel("Dooray Domain (예: https://your-company.dooray.com): "), domainField, 1, false)
+                .addLabeledComponent(JBLabel("PR Title Template: "), prTitleTemplateField, 1, false)
                 .addComponentFillVertically(JPanel(), 0)
                 .panel
         } catch (e: Exception) {
@@ -46,6 +48,10 @@ class DooraySettingsComponent {
         return domainField.text?.trim() ?: ""
     }
 
+    fun getPrTitleTemplate(): String {
+        return prTitleTemplateField.text?.trim() ?: ""
+    }
+
     fun setToken(newText: String?) {
         tokenField.text = newText ?: ""
     }
@@ -56,6 +62,10 @@ class DooraySettingsComponent {
 
     fun setDomain(newText: String?) {
         domainField.text = newText ?: ""
+    }
+
+    fun setPrTitleTemplate(newText: String?) {
+        prTitleTemplateField.text = newText ?: ""
     }
 
 }

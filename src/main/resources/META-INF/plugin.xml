@@ -6,11 +6,13 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>Git4Idea</depends>
+    <depends>org.jetbrains.plugins.github</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsState" />
+        <projectService serviceImplementation="com.github.dhks77.intellijdoorayplugin.plugin.cache.DoorayPostCache" />
         <applicationConfigurable 
             instance="com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsConfigurable" 
             id="com.github.dhks77.intellijdoorayplugin.DooraySettingsConfigurable" 
@@ -39,6 +41,11 @@
         </action>
         <action id="TestDooraySettings" class="com.github.dhks77.intellijdoorayplugin.plugin.actions.TestDooraySettingsAction" text="Dooray 설정 진단" icon="/icons/D.svg">
             <add-to-group group-id="ToolsMenu" anchor="last" />
+        </action>
+        <action id="FillFromDooray" class="com.github.dhks77.intellijdoorayplugin.plugin.actions.FillFromDoorayAction" text="Fill from Dooray" icon="/icons/D.svg">
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt A" />
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="ctrl shift meta A" />
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="ctrl shift meta A" />
         </action>
     </actions>
 </idea-plugin>
