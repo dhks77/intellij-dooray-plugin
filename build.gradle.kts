@@ -129,4 +129,8 @@ tasks {
     wrapper {
         gradleVersion = properties("gradleVersion").get()
     }
+    // Disable buildSearchableOptions task to avoid build issues
+    buildSearchableOptions {
+        enabled = false
+    }
 }
