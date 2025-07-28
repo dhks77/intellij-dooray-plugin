@@ -139,17 +139,17 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
         val allComponents = getAllVisibleComponents()
         logger.info("총 ${allComponents.size}개의 컴포넌트 발견")
         
-        // EditorComponentImpl 검색 (GitHub PR은 에디터 컴포넌트 사용)
-        val editorComponents = allComponents.filterIsInstance<EditorComponentImpl>()
-        logger.info("발견된 EditorComponentImpl 개수: ${editorComponents.size}")
+        // GitHub Pull Request 창의 에디터만 찾기
+        val prEditorComponents = findGitHubPREditors(allComponents)
+        logger.info("발견된 GitHub PR EditorComponentImpl 개수: ${prEditorComponents.size}")
         
-        for ((index, editorComponent) in editorComponents.withIndex()) {
+        for ((index, editorComponent) in prEditorComponents.withIndex()) {
             try {
                 val editor = editorComponent.editor
                 val document = editor.document
                 val currentText = document.text
                 
-                logger.info("EditorComponent[$index] - text: '$currentText', " +
+                logger.info("PR EditorComponent[$index] - text: '$currentText', " +
                         "isViewer: ${editor.isViewer}, " +
                         "lineCount: ${document.lineCount}")
                 
@@ -170,7 +170,7 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                     logger.info("Description 필드 채우기 성공 (Editor)")
                 }
             } catch (e: Exception) {
-                logger.warn("EditorComponent[$index] 처리 실패", e)
+                logger.warn("PR EditorComponent[$index] 처리 실패", e)
             }
         }
         
@@ -268,6 +268,53 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                 className.contains("description") ||
                 className.contains("body") ||
                 (area.isVisible && area.isEnabled && area.text.isEmpty() && area.rows > 1)
+    }
+    
+    private fun findGitHubPREditors(allComponents: List<Component>): List<EditorComponentImpl> {
+        val prEditors = mutableListOf<EditorComponentImpl>()
+        
+        // GitHub Pull Request 창과 관련된 컴포넌트를 찾기
+        for (component in allComponents) {
+            // Pull Request 관련 컨테이너 찾기
+            if (isPullRequestContainer(component)) {
+                // 해당 컨테이너 내의 EditorComponentImpl만 수집
+                val editorsInContainer = mutableListOf<Component>()
+                collectComponents(component as Container, editorsInContainer)
+                prEditors.addAll(editorsInContainer.filterIsInstance<EditorComponentImpl>())
+                logger.info("Pull Request 컨테이너에서 ${editorsInContainer.filterIsInstance<EditorComponentImpl>().size}개 에디터 발견")
+            }
+        }
+        
+        // 만약 PR 컨테이너를 찾지 못했다면, 파일 에디터가 아닌 에디터만 선택
+        if (prEditors.isEmpty()) {
+            logger.info("PR 컨테이너를 찾지 못함. 파일 에디터가 아닌 에디터 검색")
+            val allEditors = allComponents.filterIsInstance<EditorComponentImpl>()
+            for (editor in allEditors) {
+                try {
+                    val virtualFile = editor.editor.virtualFile
+                    // 가상 파일이 없거나 실제 파일이 아닌 경우 (PR 에디터일 가능성)
+                    if (virtualFile == null || !virtualFile.isInLocalFileSystem) {
+                        prEditors.add(editor)
+                        logger.info("가상 파일이 아닌 에디터 발견: ${editor}")
+                    }
+                } catch (e: Exception) {
+                    // 에러가 발생하면 PR 에디터일 가능성이 높음
+                    prEditors.add(editor)
+                    logger.info("에러 발생 에디터 (PR 가능성): ${editor}")
+                }
+            }
+        }
+        
+        return prEditors
+    }
+    
+    private fun isPullRequestContainer(component: Component): Boolean {
+        val componentString = component.toString()
+        return componentString.contains("Pull Request", ignoreCase = true) ||
+                componentString.contains("PullRequest", ignoreCase = true) ||
+                componentString.contains("New Pull Request", ignoreCase = true) ||
+                component.javaClass.name.contains("pullrequest", ignoreCase = true) ||
+                component.javaClass.name.contains("github", ignoreCase = true)
     }
     
     private fun extractTaskNumber(branchName: String): String? {
