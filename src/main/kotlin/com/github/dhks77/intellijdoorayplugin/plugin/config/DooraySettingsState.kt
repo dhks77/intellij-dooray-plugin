@@ -19,6 +19,7 @@ class DooraySettingsState : PersistentStateComponent<DooraySettingsState> {
     var token = ""
     var projectId = ""
     var domain = ""
+    var prTitleTemplate = "[#{taskNumber}] {subject}"
 
     companion object {
         private val logger = Logger.getInstance(DooraySettingsState::class.java)
@@ -46,6 +47,7 @@ class DooraySettingsState : PersistentStateComponent<DooraySettingsState> {
             this.token = state.token ?: ""
             this.projectId = state.projectId ?: ""
             this.domain = state.domain ?: ""
+            this.prTitleTemplate = state.prTitleTemplate ?: "[#{taskNumber}] {subject}"
             logger.info("DooraySettingsState state loaded successfully")
         } catch (e: Exception) {
             logger.error("Failed to load DooraySettingsState state", e)

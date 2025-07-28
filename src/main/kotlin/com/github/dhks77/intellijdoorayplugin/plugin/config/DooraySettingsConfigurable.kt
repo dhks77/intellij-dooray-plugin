@@ -30,8 +30,9 @@ class DooraySettingsConfigurable : Configurable {
             val tokenChanged = component.tokenField.text != settings.token
             val projectIdChanged = component.projectIdField.text != settings.projectId
             val domainChanged = component.domainField.text != settings.domain
+            val prTitleTemplateChanged = component.prTitleTemplateField.text != settings.prTitleTemplate
             
-            tokenChanged || projectIdChanged || domainChanged
+            tokenChanged || projectIdChanged || domainChanged || prTitleTemplateChanged
         } catch (e: Exception) {
             logger.error("Failed to check if settings are modified", e)
             false
@@ -46,6 +47,7 @@ class DooraySettingsConfigurable : Configurable {
             settings.token = component.getToken()
             settings.projectId = component.getProjectId()
             settings.domain = component.getDomain()
+            settings.prTitleTemplate = component.getPrTitleTemplate()
             
             logger.info("Dooray settings applied successfully")
         } catch (e: Exception) {
@@ -62,6 +64,7 @@ class DooraySettingsConfigurable : Configurable {
             component.setToken(settings.token)
             component.setProjectId(settings.projectId)
             component.setDomain(settings.domain)
+            component.setPrTitleTemplate(settings.prTitleTemplate)
             
             logger.info("Dooray settings reset successfully")
         } catch (e: Exception) {
