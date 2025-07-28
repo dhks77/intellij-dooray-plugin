@@ -15,8 +15,7 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.util.Consumer
 import com.intellij.ide.BrowserUtil
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+
 import java.awt.event.MouseEvent
 
 class BranchStatusBarWidgetFactory : StatusBarWidgetFactory {
@@ -30,7 +29,6 @@ class BranchStatusBarWidgetFactory : StatusBarWidgetFactory {
 
 class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, StatusBarWidget.TextPresentation {
     private val cache = DoorayPostCache.getInstance(project)
-    private val scope = CoroutineScope(Dispatchers.IO)
     private var currentText = "Dooray: -"
             private var statusBar: StatusBar? = null
     private var alarm: com.intellij.util.Alarm? = null

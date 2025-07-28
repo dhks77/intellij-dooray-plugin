@@ -25,11 +25,6 @@ import git4idea.repo.GitRepository
 import javax.swing.*
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.Toolkit
-import java.awt.datatransfer.StringSelection
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.vcs.VcsDataKeys
 
 class OpenDoorayTaskByBranchAction : AnAction() {
 

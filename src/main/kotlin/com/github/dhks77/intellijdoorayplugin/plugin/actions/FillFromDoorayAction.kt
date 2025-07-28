@@ -12,11 +12,9 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.impl.EditorComponentImpl
 import com.intellij.openapi.command.WriteCommandAction
 import git4idea.GitUtil
-import git4idea.repo.GitRepository
 import java.awt.*
 import java.awt.datatransfer.StringSelection
 import javax.swing.*
