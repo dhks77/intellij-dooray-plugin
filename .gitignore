@@ -6,3 +6,6 @@ build
 .vscode/
 .kotlin/
 .omc/
+META-INF/
+com/
+git4idea/
