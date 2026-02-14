@@ -31,10 +31,9 @@ dependencies {
     implementation("com.github.kittinunf.fuel:fuel-jackson:2.3.1")
     
     intellijPlatform {
-        val type = properties("platformType")
-        val version = properties("platformVersion")
-        // Force x86_64 architecture to avoid aarch64 issues with 2025.1
-        create(type, version, useInstaller = false)
+        intellijIdea(properties("platformVersion").get()) {
+            useInstaller.set(false)
+        }
         
         // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
         val plugins = properties("platformPlugins").map { it.split(',').map(String::trim).filter(String::isNotEmpty) }
@@ -44,6 +43,7 @@ dependencies {
         
         // VCS and Git support
         bundledPlugin("Git4Idea")
+        bundledPlugin("org.jetbrains.plugins.github")
         
         // Required for plugin development
         pluginVerifier()
