@@ -14,8 +14,6 @@ import com.intellij.openapi.diagnostic.Logger
 )
 class DooraySettingsState : PersistentStateComponent<DooraySettingsState> {
 
-    private val logger = Logger.getInstance(DooraySettingsState::class.java)
-
     var token = ""
     var projectId = ""
     var domain = ""
@@ -26,7 +24,6 @@ class DooraySettingsState : PersistentStateComponent<DooraySettingsState> {
 
         fun getInstance(): DooraySettingsState {
             return try {
-                logger.info("Getting DooraySettingsState instance")
                 ApplicationManager.getApplication().getService(DooraySettingsState::class.java)
                     ?: throw IllegalStateException("DooraySettingsState service not found")
             } catch (e: Exception) {
@@ -37,21 +34,17 @@ class DooraySettingsState : PersistentStateComponent<DooraySettingsState> {
     }
 
     override fun getState(): DooraySettingsState {
-        logger.debug("Getting DooraySettingsState state")
         return this
     }
 
     override fun loadState(state: DooraySettingsState) {
         try {
-            logger.info("Loading DooraySettingsState state")
             this.token = state.token ?: ""
             this.projectId = state.projectId ?: ""
             this.domain = state.domain ?: ""
             this.prTitleTemplate = state.prTitleTemplate ?: "[#{taskNumber}] {subject}"
-            logger.info("DooraySettingsState state loaded successfully")
         } catch (e: Exception) {
             logger.error("Failed to load DooraySettingsState state", e)
-            // 기본값으로 초기화
             this.token = ""
             this.projectId = ""
             this.domain = ""

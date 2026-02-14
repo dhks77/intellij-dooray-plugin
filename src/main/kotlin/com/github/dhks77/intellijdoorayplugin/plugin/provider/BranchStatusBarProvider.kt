@@ -1,9 +1,10 @@
 package com.github.dhks77.intellijdoorayplugin.plugin.provider
 
+import com.github.dhks77.intellijdoorayplugin.common.BranchUtils
 import com.github.dhks77.intellijdoorayplugin.dooray.facade.getPost
 import com.github.dhks77.intellijdoorayplugin.plugin.cache.DoorayPostCache
 import com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsState
-import com.github.dhks77.intellijdoorayplugin.service.GithubService
+import com.github.dhks77.intellijdoorayplugin.service.BranchService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.StatusBar
@@ -30,34 +31,31 @@ class BranchStatusBarWidgetFactory : StatusBarWidgetFactory {
 class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, StatusBarWidget.TextPresentation {
     private val cache = DoorayPostCache.getInstance(project)
     private var currentText = "Dooray: -"
-            private var statusBar: StatusBar? = null
+    private var statusBar: StatusBar? = null
     private var alarm: com.intellij.util.Alarm? = null
-    
+
     override fun ID(): String = "DoorayBranchInfo"
-    
+
     override fun getPresentation(): StatusBarWidget.WidgetPresentation = this
-    
+
     override fun getText(): String = currentText
-    
+
     override fun getAlignment(): Float = 0.0f
-    
+
     override fun getTooltipText(): String? = "클릭하여 업무 페이지 열기"
-    
+
     override fun getClickConsumer(): Consumer<MouseEvent>? = Consumer { mouseEvent ->
-        // 우클릭(또는 Ctrl+클릭)이면 새로고침
         if (mouseEvent.isPopupTrigger || mouseEvent.isControlDown) {
             updateBranchInfo()
             return@Consumer
         }
-        
-        // 일반 클릭이면 Dooray 업무 페이지 열기
-        val githubService = project.service<GithubService>()
-        val branchName = githubService.getBranchName()
+
+        val branchService = project.service<BranchService>()
+        val branchName = branchService.getBranchName()
         if (branchName == null) {
             return@Consumer
         }
-        
-        // 캐시에서 Post 객체 가져오기
+
         val post = cache.getPost(branchName)
         if (post != null) {
             val settings = DooraySettingsState.getInstance()
@@ -67,51 +65,47 @@ class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, Sta
             }
         }
     }
-    
+
     override fun install(statusBar: StatusBar) {
         this.statusBar = statusBar
         updateBranchInfo()
-        
-        // 브랜치 변경 감지 - 5초마다 체크 (가장 확실한 방법)
+
         alarm = com.intellij.util.Alarm(com.intellij.util.Alarm.ThreadToUse.SWING_THREAD, project)
         var lastBranchName: String? = null
-        
+
         val checkBranchTask = object : Runnable {
             override fun run() {
-                val currentBranch = project.service<GithubService>().getBranchName()
+                val currentBranch = project.service<BranchService>().getBranchName()
                 if (currentBranch != lastBranchName) {
                     lastBranchName = currentBranch
                     updateBranchInfo()
                 }
-                // 5초 후 다시 체크
                 alarm?.addRequest(this, 5000)
             }
         }
-        
-        // 초기 체크 시작
-        alarm?.addRequest(checkBranchTask, 1000) // 1초 후 시작
+
+        alarm?.addRequest(checkBranchTask, 1000)
     }
-    
+
     override fun dispose() {
         alarm?.dispose()
         alarm = null
     }
-    
+
     private fun updateText(text: String) {
         currentText = text
         statusBar?.updateWidget(ID())
     }
-    
+
     private fun updateBranchInfo() {
-        val githubService = project.service<GithubService>()
-        val branchName = githubService.getBranchName()
-        
+        val branchService = project.service<BranchService>()
+        val branchName = branchService.getBranchName()
+
         if (branchName.isNullOrEmpty()) {
             updateText("Dooray: No Branch")
             return
         }
-        
-        // 캐시에서 확인
+
         if (cache.hasPost(branchName)) {
             val post = cache.getPost(branchName)
             val text = if (post != null) {
@@ -122,17 +116,15 @@ class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, Sta
             updateText(text)
             return
         }
-        
-        // 브랜치 이름에서 task number 추출
-        val taskNumber = extractTaskNumber(branchName)
+
+        val taskNumber = BranchUtils.extractTaskNumber(branchName)
         if (taskNumber == null) {
             updateText("Dooray: No Task")
             return
         }
-        
+
         updateText("Dooray: 로딩 중...")
-        
-        // 백그라운드에서 API 호출
+
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Dooray 업무 정보 가져오는 중...", true) {
             override fun run(indicator: ProgressIndicator) {
                 try {
@@ -144,19 +136,19 @@ class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, Sta
                         }
                         return
                     }
-                    
+
                     val post = getPost(settings.token, settings.projectId, taskNumber)
                     val tooltip = if (post != null) {
                         "${post.number}: ${post.subject}"
                     } else {
                         "Dooray: 업무 없음"
                     }
-                    
+
                     ApplicationManager.getApplication().invokeLater {
                         updateText(tooltip)
                         cache.putPost(branchName, post)
                     }
-                    
+
                 } catch (e: Exception) {
                     ApplicationManager.getApplication().invokeLater {
                         updateText("Dooray: 오류")
@@ -166,10 +158,4 @@ class BranchStatusBarWidget(private val project: Project) : StatusBarWidget, Sta
             }
         })
     }
-    
-    private fun extractTaskNumber(branchName: String): Long? {
-        val regex = Regex("\\d+")
-        val match = regex.findAll(branchName).lastOrNull()
-        return match?.value?.toLongOrNull()
-    }
-} 
+}

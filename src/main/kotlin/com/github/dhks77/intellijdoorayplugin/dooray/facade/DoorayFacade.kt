@@ -10,9 +10,12 @@ fun getPost(token: String, projectId: String, postNumber: Long): Post? {
     return Fuel.get("${DOORAY_URL}/project/v1/projects/$projectId/posts",
                     listOf("postNumber" to postNumber))
         .header("Authorization" to "dooray-api $token")
+        .timeout(10_000)
+        .timeoutRead(15_000)
         .responseObject<PostsResponse>()
         .third
-        .get()
-        .result
-        .firstOrNull()
+        .fold(
+            success = { it.result.firstOrNull() },
+            failure = { throw RuntimeException("Dooray API 호출 실패: ${it.message}", it) }
+        )
 }

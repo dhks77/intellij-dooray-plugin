@@ -1,1 +1,0 @@
-package com.github.dhks77.intellijdoorayplugin.dooray.service

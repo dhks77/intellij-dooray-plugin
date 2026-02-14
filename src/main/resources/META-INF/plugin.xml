@@ -8,8 +8,6 @@
     <depends>Git4Idea</depends>
     <depends>org.jetbrains.plugins.github</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
-
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsState" />
         <projectService serviceImplementation="com.github.dhks77.intellijdoorayplugin.plugin.cache.DoorayPostCache" />

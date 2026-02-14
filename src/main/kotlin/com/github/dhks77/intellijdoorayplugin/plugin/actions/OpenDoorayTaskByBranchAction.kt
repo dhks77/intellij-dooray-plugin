@@ -1,5 +1,6 @@
 package com.github.dhks77.intellijdoorayplugin.plugin.actions
 
+import com.github.dhks77.intellijdoorayplugin.common.BranchUtils
 import com.github.dhks77.intellijdoorayplugin.dooray.facade.getPost
 import com.github.dhks77.intellijdoorayplugin.plugin.cache.DoorayPostCache
 import com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsState
@@ -30,7 +31,7 @@ class OpenDoorayTaskByBranchAction : AnAction() {
 
     companion object {
         fun extractTaskNumber(branchName: String): Long? {
-            return branchName.split("/").last().toLongOrNull()
+            return BranchUtils.extractTaskNumber(branchName)
         }
 
         fun getDisplayText(branch: GitBranch, cache: DoorayPostCache): String {
@@ -160,7 +161,7 @@ class TopLevelPopupStep(
         }
         return null
     }
-    
+
     private fun loadAllTasks() {
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "모든 업무 정보 불러오는 중...", true) {
             override fun run(indicator: ProgressIndicator) {
@@ -168,16 +169,16 @@ class TopLevelPopupStep(
                     val settings = DooraySettingsState.getInstance()
                     val cache = DoorayPostCache.getInstance(project)
                     val totalBranches = allTaskBranches.size
-                    
+
                     allTaskBranches.forEachIndexed { index, branch ->
                         if (indicator.isCanceled) return
-                        
+
                         indicator.text = "업무 정보 불러오는 중... (${index + 1}/$totalBranches)"
                         indicator.fraction = (index + 1).toDouble() / totalBranches
-                        
+
                         val existingPost = cache.getPost(branch.name)
                         if (existingPost == null) {
-                            val taskNumber = OpenDoorayTaskByBranchAction.extractTaskNumber(branch.name)
+                            val taskNumber = BranchUtils.extractTaskNumber(branch.name)
                             if (taskNumber != null) {
                                 try {
                                     val post = getPost(settings.token, settings.projectId, taskNumber)
@@ -190,7 +191,7 @@ class TopLevelPopupStep(
                             }
                         }
                     }
-                    
+
                     ApplicationManager.getApplication().invokeLater {
                         Messages.showInfoMessage(
                             project,
@@ -267,7 +268,7 @@ class BranchActionPopupStep(
     private val project: com.intellij.openapi.project.Project,
     private val repository: GitRepository,
     private val branch: GitBranch
-) : BaseListPopupStep<BranchAction>("${branch.name} 액션 선택", BranchAction.values().toList()) {
+) : BaseListPopupStep<BranchAction>("${branch.name} 액션 선택", BranchAction.entries) {
 
     override fun getTextFor(action: BranchAction): String {
         return when (action) {
@@ -292,7 +293,7 @@ class BranchActionPopupStep(
 
     private fun openDoorayTask() {
         val branchName = branch.name
-        val taskNumber = OpenDoorayTaskByBranchAction.extractTaskNumber(branchName) ?: return
+        val taskNumber = BranchUtils.extractTaskNumber(branchName) ?: return
 
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Dooray 업무 정보 가져오는 중...", true) {
             override fun run(indicator: ProgressIndicator) {
@@ -327,7 +328,7 @@ class BranchActionPopupStep(
             }
         })
     }
-    
+
     private fun deleteBranch() {
         if (branch.isRemote) {
             Messages.showWarningDialog(
@@ -341,7 +342,7 @@ class BranchActionPopupStep(
         val result = Messages.showYesNoDialog(
             project,
             "브랜치 '${branch.name}'을 삭제하시겠습니까?\n\n" +
-                    "⚠️ 주의: 병합되지 않은 커밋이 있어도 강제로 삭제됩니다.\n" +
+                    "주의: 병합되지 않은 커밋이 있어도 강제로 삭제됩니다.\n" +
                     "이 작업은 되돌릴 수 없습니다.",
             "브랜치 삭제 확인",
             Messages.getQuestionIcon()
@@ -404,7 +405,7 @@ class BranchMultiDeletePopupStep(
 ) {
     fun showMultiDeleteDialog() {
         val localBranches = branchGroup.branches.filter { !it.isRemote }
-        
+
         if (localBranches.isEmpty()) {
             Messages.showWarningDialog(
                 project,
@@ -413,39 +414,39 @@ class BranchMultiDeletePopupStep(
             )
             return
         }
-        
+
         val dialog = JDialog()
         dialog.title = "${branchGroup.name} 브랜치 삭제"
         dialog.isModal = true
         dialog.layout = BorderLayout()
-        
+
         val panel = JPanel()
         panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
         panel.border = JBUI.Borders.empty(10)
-        
+
         val checkboxes = mutableListOf<JBCheckBox>()
         val cache = DoorayPostCache.getInstance(project)
-        
+
         localBranches.forEach { branch ->
             val displayText = OpenDoorayTaskByBranchAction.getDisplayText(branch, cache)
             val checkbox = JBCheckBox(displayText)
-            checkbox.actionCommand = branch.name // 실제 브랜치 이름을 저장
+            checkbox.actionCommand = branch.name
             checkboxes.add(checkbox)
             panel.add(checkbox)
         }
-        
+
         val scrollPane = JBScrollPane(panel)
         scrollPane.preferredSize = Dimension(400, 300)
-        
+
         val buttonPanel = JPanel()
         val deleteButton = JButton("선택한 브랜치 삭제")
         val cancelButton = JButton("취소")
-        
+
         deleteButton.addActionListener {
-            val selectedBranches = checkboxes.filter { it.isSelected }.map { checkbox ->
-                localBranches.find { it.name == checkbox.actionCommand }
-            }.filterNotNull()
-            
+            val selectedBranches = checkboxes.mapNotNull { checkbox ->
+                if (checkbox.isSelected) localBranches.find { it.name == checkbox.actionCommand } else null
+            }
+
             if (selectedBranches.isEmpty()) {
                 Messages.showWarningDialog(
                     project,
@@ -454,37 +455,37 @@ class BranchMultiDeletePopupStep(
                 )
                 return@addActionListener
             }
-            
+
             val result = Messages.showYesNoDialog(
                 project,
                 "선택한 ${selectedBranches.size}개의 브랜치를 삭제하시겠습니까?\n\n" +
-                        "⚠️ 주의: 병합되지 않은 커밋이 있어도 강제로 삭제됩니다.\n" +
+                        "주의: 병합되지 않은 커밋이 있어도 강제로 삭제됩니다.\n" +
                         "이 작업은 되돌릴 수 없습니다.",
                 "브랜치 삭제 확인",
                 Messages.getQuestionIcon()
             )
-            
+
             if (result == Messages.YES) {
                 dialog.dispose()
                 deleteSelectedBranches(selectedBranches)
             }
         }
-        
+
         cancelButton.addActionListener {
             dialog.dispose()
         }
-        
+
         buttonPanel.add(deleteButton)
         buttonPanel.add(cancelButton)
-        
+
         dialog.add(scrollPane, BorderLayout.CENTER)
         dialog.add(buttonPanel, BorderLayout.SOUTH)
-        
+
         dialog.pack()
         dialog.setLocationRelativeTo(null)
         dialog.isVisible = true
     }
-    
+
     private fun deleteSelectedBranches(branches: List<GitBranch>) {
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "브랜치 삭제 중...", false) {
             override fun run(indicator: ProgressIndicator) {
@@ -492,19 +493,19 @@ class BranchMultiDeletePopupStep(
                 val totalBranches = branches.size
                 var successCount = 0
                 val failedBranches = mutableListOf<String>()
-                
+
                 branches.forEachIndexed { index, branch ->
                     indicator.text = "브랜치 삭제 중... (${index + 1}/$totalBranches)"
                     indicator.fraction = (index + 1).toDouble() / totalBranches
-                    
+
                     try {
                         val isCurrentBranch = repository.currentBranch == branch
-                        
+
                         if (isCurrentBranch) {
                             failedBranches.add("${branch.name} (현재 브랜치)")
                         } else {
                             val result = git.branchDelete(repository, branch.name, true)
-                            
+
                             if (result.success()) {
                                 successCount++
                             } else {
@@ -515,7 +516,7 @@ class BranchMultiDeletePopupStep(
                         failedBranches.add("${branch.name} (${e.message})")
                     }
                 }
-                
+
                 ApplicationManager.getApplication().invokeLater {
                     val message = buildString {
                         append("브랜치 삭제 완료\n\n")
@@ -526,7 +527,7 @@ class BranchMultiDeletePopupStep(
                             failedBranches.forEach { append("- $it\n") }
                         }
                     }
-                    
+
                     if (failedBranches.isNotEmpty()) {
                         Messages.showWarningDialog(project, message, "브랜치 삭제 결과")
                     } else {

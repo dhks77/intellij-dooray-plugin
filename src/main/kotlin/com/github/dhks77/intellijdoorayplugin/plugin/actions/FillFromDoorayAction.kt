@@ -1,5 +1,6 @@
 package com.github.dhks77.intellijdoorayplugin.plugin.actions
 
+import com.github.dhks77.intellijdoorayplugin.common.BranchUtils
 import com.github.dhks77.intellijdoorayplugin.dooray.facade.getPost
 import com.github.dhks77.intellijdoorayplugin.plugin.cache.DoorayPostCache
 import com.github.dhks77.intellijdoorayplugin.plugin.config.DooraySettingsState
@@ -20,23 +21,23 @@ import java.awt.datatransfer.StringSelection
 import javax.swing.*
 
 class FillFromDoorayAction : AnAction("Fill from Dooray") {
-    
+
     private val logger = Logger.getInstance(FillFromDoorayAction::class.java)
-    
+
     override fun getActionUpdateThread(): ActionUpdateThread {
         return ActionUpdateThread.BGT
     }
-    
+
     override fun update(e: AnActionEvent) {
         val project = e.project
         e.presentation.isEnabledAndVisible = project != null
     }
-    
+
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        
+
         logger.info("FillFromDoorayAction 실행 시작")
-        
+
         ProgressManager.getInstance().run(object : Task.Backgroundable(project, "Dooray 정보 가져오는 중...", false) {
             override fun run(indicator: com.intellij.openapi.progress.ProgressIndicator) {
                 try {
@@ -48,7 +49,7 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                         }
                         return
                     }
-                    
+
                     val currentBranch = repository.currentBranch?.name
                     if (currentBranch == null) {
                         logger.warn("현재 브랜치를 찾을 수 없습니다.")
@@ -57,10 +58,10 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                         }
                         return
                     }
-                    
+
                     logger.info("현재 브랜치: $currentBranch")
-                    
-                    val taskNumber = extractTaskNumber(currentBranch)
+
+                    val taskNumber = BranchUtils.extractTaskNumber(currentBranch)
                     if (taskNumber == null) {
                         logger.warn("브랜치명에서 태스크 번호를 추출할 수 없습니다: $currentBranch")
                         ApplicationManager.getApplication().invokeLater {
@@ -68,16 +69,15 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                         }
                         return
                     }
-                    
+
                     logger.info("추출된 태스크 번호: $taskNumber")
-                    
-                    // 캐시에서 먼저 확인
+
+                    // 캐시에서 먼저 확인 (브랜치명 기준)
                     val cache = project.getService(DoorayPostCache::class.java)
-                    var post = cache.getPost(taskNumber)
-                    
+                    var post = cache.getPost(currentBranch)
+
                     if (post == null) {
                         logger.info("캐시에 없음. Dooray API 호출")
-                        // API 호출
                         val settings = DooraySettingsState.getInstance()
                         if (settings.domain.isBlank() || settings.token.isBlank() || settings.projectId.isBlank()) {
                             logger.warn("Dooray 설정이 완료되지 않았습니다.")
@@ -86,11 +86,11 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                             }
                             return
                         }
-                        
-                        post = getPost(settings.token, settings.projectId, taskNumber.toLong())
-                        
+
+                        post = getPost(settings.token, settings.projectId, taskNumber)
+
                         if (post != null) {
-                            cache.putPost(taskNumber, post)
+                            cache.putPost(currentBranch, post)
                             logger.info("Dooray API에서 포스트 정보 가져옴: ${post.subject}")
                         } else {
                             logger.warn("Dooray API에서 포스트 정보를 가져올 수 없습니다.")
@@ -102,22 +102,23 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                     } else {
                         logger.info("캐시에서 포스트 정보 사용: ${post.subject}")
                     }
-                    
+
                     val settings = DooraySettingsState.getInstance()
+                    val taskNumberStr = taskNumber.toString()
                     val prTitle = settings.prTitleTemplate
-                        .replace("{taskNumber}", taskNumber)
-                        .replace("#{taskNumber}", "#$taskNumber")
+                        .replace("{taskNumber}", taskNumberStr)
+                        .replace("#{taskNumber}", "#$taskNumberStr")
                         .replace("{subject}", post.subject)
-                    
+
                     val prDescription = "${settings.domain}/project/tasks/${post.id}"
-                    
+
                     logger.info("생성된 PR 제목: $prTitle")
                     logger.info("생성된 PR 설명: $prDescription")
-                    
+
                     ApplicationManager.getApplication().invokeLater {
                         fillPullRequestFields(project, prTitle, prDescription)
                     }
-                    
+
                 } catch (e: Exception) {
                     logger.error("FillFromDoorayAction 실행 중 오류 발생", e)
                     ApplicationManager.getApplication().invokeLater {
@@ -127,33 +128,29 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
             }
         })
     }
-    
+
     private fun fillPullRequestFields(project: Project, title: String, description: String) {
         logger.info("GitHub Pull Request 필드 채우기 시작")
-        
-        // GitHub Pull Request 필드 검색
+
         var titleFilled = false
         var descriptionFilled = false
-        
-        // 모든 윈도우와 컴포넌트 검색
+
         val allComponents = getAllVisibleComponents()
         logger.info("총 ${allComponents.size}개의 컴포넌트 발견")
-        
-        // GitHub Pull Request 창의 에디터만 찾기
+
         val prEditorComponents = findGitHubPREditors(allComponents)
         logger.info("발견된 GitHub PR EditorComponentImpl 개수: ${prEditorComponents.size}")
-        
+
         for ((index, editorComponent) in prEditorComponents.withIndex()) {
             try {
                 val editor = editorComponent.editor
                 val document = editor.document
                 val currentText = document.text
-                
+
                 logger.info("PR EditorComponent[$index] - text: '$currentText', " +
                         "isViewer: ${editor.isViewer}, " +
                         "lineCount: ${document.lineCount}")
-                
-                // Title 필드 추정 (짧은 텍스트, 한 줄)
+
                 if (!titleFilled && document.lineCount <= 1 && currentText.length < 200) {
                     WriteCommandAction.runWriteCommandAction(project) {
                         document.setText(title)
@@ -161,7 +158,6 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                     titleFilled = true
                     logger.info("Title 필드 채우기 성공 (Editor)")
                 }
-                // Description 필드 추정 (긴 텍스트, 여러 줄 가능)
                 else if (!descriptionFilled && (document.lineCount > 1 || currentText.isEmpty())) {
                     WriteCommandAction.runWriteCommandAction(project) {
                         document.setText(description)
@@ -173,13 +169,12 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                 logger.warn("PR EditorComponent[$index] 처리 실패", e)
             }
         }
-        
-        // 기존 JTextField/JTextArea도 확인 (fallback)
+
         if (!titleFilled || !descriptionFilled) {
             val textFields = allComponents.filterIsInstance<JTextField>()
             val textAreas = allComponents.filterIsInstance<JTextArea>()
             logger.info("Fallback - JTextField: ${textFields.size}, JTextArea: ${textAreas.size}")
-            
+
             for (field in textFields) {
                 if (!titleFilled && isLikelyTitleField(field)) {
                     try {
@@ -191,7 +186,7 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                     }
                 }
             }
-            
+
             for (area in textAreas) {
                 if (!descriptionFilled && isLikelyDescriptionField(area)) {
                     try {
@@ -204,11 +199,10 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                 }
             }
         }
-        
+
         if (!titleFilled || !descriptionFilled) {
             logger.warn("GitHub Pull Request 필드를 찾지 못했습니다. 클립보드에 복사합니다.")
-            
-            // 클립보드에 복사
+
             val clipboardText = "Title: $title\n\nDescription: $description"
             val clipboard = Toolkit.getDefaultToolkit().systemClipboard
             clipboard.setContents(StringSelection(clipboardText), null)
@@ -216,20 +210,19 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
             logger.info("PR 정보가 성공적으로 입력되었습니다.")
         }
     }
-    
+
     private fun getAllVisibleComponents(): List<Component> {
         val components = mutableListOf<Component>()
-        
-        // 모든 윈도우 검색
+
         for (window in Window.getWindows()) {
             if (window.isVisible) {
                 collectComponents(window, components)
             }
         }
-        
+
         return components
     }
-    
+
     private fun collectComponents(container: Container, components: MutableList<Component>) {
         for (component in container.components) {
             components.add(component)
@@ -238,13 +231,13 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
             }
         }
     }
-    
+
     private fun isLikelyTitleField(field: JTextField): Boolean {
         val name = field.name?.lowercase() ?: ""
         val accessibleName = field.accessibleContext?.accessibleName?.lowercase() ?: ""
         val toolTip = field.toolTipText?.lowercase() ?: ""
         val className = field.javaClass.simpleName.lowercase()
-        
+
         return name.contains("title") ||
                 accessibleName.contains("title") ||
                 toolTip.contains("title") ||
@@ -252,13 +245,13 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                 className.contains("title") ||
                 (field.isVisible && field.isEnabled && field.text.isEmpty())
     }
-    
+
     private fun isLikelyDescriptionField(area: JTextArea): Boolean {
         val name = area.name?.lowercase() ?: ""
         val accessibleName = area.accessibleContext?.accessibleName?.lowercase() ?: ""
         val toolTip = area.toolTipText?.lowercase() ?: ""
         val className = area.javaClass.simpleName.lowercase()
-        
+
         return name.contains("description") ||
                 name.contains("body") ||
                 accessibleName.contains("description") ||
@@ -269,45 +262,39 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                 className.contains("body") ||
                 (area.isVisible && area.isEnabled && area.text.isEmpty() && area.rows > 1)
     }
-    
+
     private fun findGitHubPREditors(allComponents: List<Component>): List<EditorComponentImpl> {
         val prEditors = mutableListOf<EditorComponentImpl>()
-        
-        // GitHub Pull Request 창과 관련된 컴포넌트를 찾기
+
         for (component in allComponents) {
-            // Pull Request 관련 컨테이너 찾기
             if (isPullRequestContainer(component)) {
-                // 해당 컨테이너 내의 EditorComponentImpl만 수집
                 val editorsInContainer = mutableListOf<Component>()
                 collectComponents(component as Container, editorsInContainer)
                 prEditors.addAll(editorsInContainer.filterIsInstance<EditorComponentImpl>())
                 logger.info("Pull Request 컨테이너에서 ${editorsInContainer.filterIsInstance<EditorComponentImpl>().size}개 에디터 발견")
             }
         }
-        
-        // 만약 PR 컨테이너를 찾지 못했다면, 파일 에디터가 아닌 에디터만 선택
+
         if (prEditors.isEmpty()) {
             logger.info("PR 컨테이너를 찾지 못함. 파일 에디터가 아닌 에디터 검색")
             val allEditors = allComponents.filterIsInstance<EditorComponentImpl>()
             for (editor in allEditors) {
                 try {
                     val virtualFile = editor.editor.virtualFile
-                    // 가상 파일이 없거나 실제 파일이 아닌 경우 (PR 에디터일 가능성)
                     if (virtualFile == null || !virtualFile.isInLocalFileSystem) {
                         prEditors.add(editor)
                         logger.info("가상 파일이 아닌 에디터 발견: ${editor}")
                     }
                 } catch (e: Exception) {
-                    // 에러가 발생하면 PR 에디터일 가능성이 높음
                     prEditors.add(editor)
                     logger.info("에러 발생 에디터 (PR 가능성): ${editor}")
                 }
             }
         }
-        
+
         return prEditors
     }
-    
+
     private fun isPullRequestContainer(component: Component): Boolean {
         val componentString = component.toString()
         return componentString.contains("Pull Request", ignoreCase = true) ||
@@ -316,10 +303,4 @@ class FillFromDoorayAction : AnAction("Fill from Dooray") {
                 component.javaClass.name.contains("pullrequest", ignoreCase = true) ||
                 component.javaClass.name.contains("github", ignoreCase = true)
     }
-    
-    private fun extractTaskNumber(branchName: String): String? {
-        // 브랜치명에서 숫자 추출 (예: feature/123, hotfix/456-description)
-        val regex = Regex("""(\d+)""")
-        return regex.find(branchName)?.value
-    }
-} 
+}

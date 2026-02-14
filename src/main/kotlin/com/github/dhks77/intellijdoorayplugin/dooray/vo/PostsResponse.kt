@@ -12,3 +12,5 @@ data class Post(val id: String,
 
 
 data class Tag(val id: String)
+
+data class Milestone(val id: String, val name: String)

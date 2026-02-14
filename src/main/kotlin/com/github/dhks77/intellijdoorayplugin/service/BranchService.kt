@@ -5,7 +5,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 
 @Service(Service.Level.PROJECT)
-class GithubService(private val project: Project) {
+class BranchService(private val project: Project) {
 
     fun getBranchName(): String? {
         val vcsRepositoryManager = VcsRepositoryManager.getInstance(project)
