@@ -20,6 +20,11 @@
     </extensions>
 
     <actions>
+        <action id="DoorayBranchInfoAction"
+                class="com.github.dhks77.intellijdoorayplugin.plugin.actions.DoorayBranchInfoAction"
+                text="Dooray Task Info">
+            <add-to-group group-id="Git.Branch" relative-to-action="Git.Ref.Compare.With" anchor="before" />
+        </action>
         <action id="commit" class="com.github.dhks77.intellijdoorayplugin.plugin.actions.CommitAction" text="Commit" icon="/icons/D.svg">
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="first" />
         </action>
