@@ -7,5 +7,5 @@ build
 .kotlin/
 .omc/
 META-INF/
-com/
+/com/
 git4idea/
