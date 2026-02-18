@@ -14,6 +14,7 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.ui.popup.ListSeparator
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.ui.components.JBCheckBox
@@ -21,6 +22,8 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import git4idea.GitUtil
 import git4idea.GitBranch
+import git4idea.GitRemoteBranch
+import git4idea.branch.GitBrancher
 import git4idea.commands.Git
 import git4idea.repo.GitRepository
 import javax.swing.*
@@ -259,9 +262,15 @@ class BranchListPopupStep(
     }
 }
 
-enum class BranchAction {
-    OPEN_DOORAY,
-    DELETE_BRANCH
+enum class BranchAction(val displayText: String) {
+    OPEN_DOORAY("Dooray 업무 페이지 열기"),
+    CHECKOUT("체크아웃"),
+    COMPARE_WITH_CURRENT("현재 브랜치와 비교"),
+    MERGE_INTO_CURRENT("현재 브랜치에 머지"),
+    REBASE_ONTO_SELECTED("현재 브랜치를 리베이스"),
+    OPEN_ON_GITHUB("GitHub에서 열기"),
+    CREATE_PULL_REQUEST("Pull Request 생성"),
+    DELETE_BRANCH("Git 브랜치 삭제")
 }
 
 class BranchActionPopupStep(
@@ -270,10 +279,14 @@ class BranchActionPopupStep(
     private val branch: GitBranch
 ) : BaseListPopupStep<BranchAction>("${branch.name} 액션 선택", BranchAction.entries) {
 
-    override fun getTextFor(action: BranchAction): String {
-        return when (action) {
-            BranchAction.OPEN_DOORAY -> "Dooray 업무 페이지 열기"
-            BranchAction.DELETE_BRANCH -> "Git 브랜치 삭제"
+    override fun getTextFor(action: BranchAction): String = action.displayText
+
+    override fun getSeparatorAbove(value: BranchAction): ListSeparator? {
+        return when (value) {
+            BranchAction.CHECKOUT -> ListSeparator("Git")
+            BranchAction.OPEN_ON_GITHUB -> ListSeparator("GitHub")
+            BranchAction.DELETE_BRANCH -> ListSeparator()
+            else -> null
         }
     }
 
@@ -281,6 +294,20 @@ class BranchActionPopupStep(
         if (finalChoice) {
             when (selectedAction) {
                 BranchAction.OPEN_DOORAY -> openDoorayTask()
+                BranchAction.CHECKOUT -> {
+                    ApplicationManager.getApplication().invokeLater { checkout() }
+                }
+                BranchAction.COMPARE_WITH_CURRENT -> {
+                    ApplicationManager.getApplication().invokeLater { compareWithCurrent() }
+                }
+                BranchAction.MERGE_INTO_CURRENT -> {
+                    ApplicationManager.getApplication().invokeLater { mergeIntoCurrent() }
+                }
+                BranchAction.REBASE_ONTO_SELECTED -> {
+                    ApplicationManager.getApplication().invokeLater { rebaseOntoSelected() }
+                }
+                BranchAction.OPEN_ON_GITHUB -> openOnGitHub()
+                BranchAction.CREATE_PULL_REQUEST -> createPullRequest()
                 BranchAction.DELETE_BRANCH -> {
                     ApplicationManager.getApplication().invokeLater {
                         deleteBranch()
@@ -289,6 +316,87 @@ class BranchActionPopupStep(
             }
         }
         return null
+    }
+
+    private fun checkout() {
+        val brancher = GitBrancher.getInstance(project)
+        if (branch is GitRemoteBranch) {
+            val localName = (branch as GitRemoteBranch).nameForRemoteOperations
+            val localBranchExists = repository.branches.localBranches.any { it.name == localName }
+            if (localBranchExists) {
+                brancher.checkout(localName, false, listOf(repository), null)
+            } else {
+                brancher.checkoutNewBranchStartingFrom(localName, branch.name, listOf(repository), null)
+            }
+        } else {
+            brancher.checkout(branch.name, false, listOf(repository), null)
+        }
+    }
+
+    private fun compareWithCurrent() {
+        val brancher = GitBrancher.getInstance(project)
+        brancher.compare(branch.name, listOf(repository))
+    }
+
+    private fun mergeIntoCurrent() {
+        val brancher = GitBrancher.getInstance(project)
+        brancher.merge(branch.name, GitBrancher.DeleteOnMergeOption.NOTHING, listOf(repository))
+    }
+
+    private fun rebaseOntoSelected() {
+        val brancher = GitBrancher.getInstance(project)
+        brancher.rebase(listOf(repository), branch.name)
+    }
+
+    private fun getGitHubRepoUrl(): String? {
+        val remote = repository.remotes.firstOrNull { it.name == "origin" } ?: repository.remotes.firstOrNull()
+        val url = remote?.firstUrl ?: return null
+
+        // SSH format: git@host:user/repo.git
+        val sshRegex = Regex("git@([^:]+):(.+?)(?:\\.git)?$")
+        val sshMatch = sshRegex.find(url)
+        if (sshMatch != null) {
+            return "https://${sshMatch.groupValues[1]}/${sshMatch.groupValues[2]}"
+        }
+
+        // HTTPS format: https://host/user/repo.git
+        val httpsRegex = Regex("https?://([^/]+)/(.+?)(?:\\.git)?$")
+        val httpsMatch = httpsRegex.find(url)
+        if (httpsMatch != null) {
+            return "https://${httpsMatch.groupValues[1]}/${httpsMatch.groupValues[2]}"
+        }
+
+        return null
+    }
+
+    private fun getBranchNameForGitHub(): String {
+        return if (branch is GitRemoteBranch) {
+            branch.nameForRemoteOperations
+        } else {
+            branch.name
+        }
+    }
+
+    private fun openOnGitHub() {
+        val githubUrl = getGitHubRepoUrl()
+        if (githubUrl == null) {
+            ApplicationManager.getApplication().invokeLater {
+                Messages.showWarningDialog(project, "GitHub 원격 저장소를 찾을 수 없습니다.", "GitHub")
+            }
+            return
+        }
+        BrowserUtil.browse("$githubUrl/tree/${getBranchNameForGitHub()}")
+    }
+
+    private fun createPullRequest() {
+        val githubUrl = getGitHubRepoUrl()
+        if (githubUrl == null) {
+            ApplicationManager.getApplication().invokeLater {
+                Messages.showWarningDialog(project, "GitHub 원격 저장소를 찾을 수 없습니다.", "GitHub")
+            }
+            return
+        }
+        BrowserUtil.browse("$githubUrl/compare/${getBranchNameForGitHub()}?expand=1")
     }
 
     private fun openDoorayTask() {
